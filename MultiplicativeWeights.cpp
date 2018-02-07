@@ -9,30 +9,32 @@
 #include <vector>
 #include <fstream>
 
+#define N (10000)
+
 using namespace std;
 
 vector<pair<double, double> > opponent();
 
-double w_plus(double weight, double cost);
-
 double regrets(vector<pair<double, double> > costs, size_t t, string color, double total_cost);
+
+double action_cost(vector<pair<double, double> > costs, size_t t, string color);
 
 int main()
 {
 	vector<pair<double, double> > costs = opponent();
 	vector<pair<double, double> > weights;
 	vector<pair<double, double> > avg_regrets;
-	default_random_engine generator;
+	default_random_engine generator(2789710);
 	double total_cost = 0.0;
 	double choice;
-	bool color;
 	double p_red = 1;
 	double p_blue = 1;
 	double r_red;
 	double r_blue;
 	weights.push_back(make_pair(p_red, p_blue));
 	double gamma;
-	for (size_t i = 0; i < 1000; i++)
+	double epsilon = 0.000001;
+	for (size_t i = 0; i < N; i++)
 	{
 		gamma = p_red + p_blue;
 		uniform_real_distribution<double> distribution(0.0, gamma);
@@ -40,33 +42,13 @@ int main()
 		if (choice <= p_red)
 		{
 			total_cost += costs[i].first;
-			color = true;
-			if (costs[i].first >= costs[i].second)
-			{
-				p_red /= 2;
-				p_blue = w_plus(p_blue, costs[i].second);
-			}
-			else
-			{
-				p_blue /= 2;
-				p_red = w_plus(p_red, costs[i].first);
-			}
 		}
 		else if (choice > p_red)
 		{
 			total_cost += costs[i].second;
-			color = false;
-			if (costs[i].first >= costs[i].second)
-			{
-				p_red /= 2;
-				p_blue = w_plus(p_blue, costs[i].second);
-			}
-			else
-			{
-				p_blue /= 2;
-				p_red = w_plus(p_red, costs[i].first);
-			}
 		}
+		p_red = p_red * (1 - epsilon * costs[i].first);
+		p_blue = p_blue * (1 - epsilon * costs[i].second);
 		weights.push_back(make_pair(p_red, p_blue));
 		r_red = regrets(costs, i, "red", total_cost);
 		r_blue = regrets(costs, i, "blue", total_cost);
@@ -74,49 +56,46 @@ int main()
 	}
 	ofstream outstream;
 	outstream.open("regrets.txt");
-	for (size_t i = 0; i < 1000; i++)
+	for (size_t i = 0; i < N; i++)
 	{
-		outstream << "Red: " << avg_regrets[i].first << endl;
-		outstream << "Blue: " << avg_regrets[i].second << endl << endl;
+                outstream << "t=" << i << endl;
+		outstream << "Red: " << action_cost(costs, i, "red") << endl;
+		outstream << "Blue: " << action_cost(costs, i, "blue") << endl;
+		if (action_cost(costs, i, "red") < action_cost(costs, i, "blue")) {
+		  outstream << "Regret(Red) = " << avg_regrets[i].first << endl;
+		} else { //blue did best
+		  outstream << "Regret(Blue) = " << avg_regrets[i].second << endl;
+		}
+		outstream << endl;
 	}
 	outstream.close();
     return 0;
 }
 
-double w_plus(double weight, double cost)
+double action_cost(vector<pair<double, double> > costs, size_t t, string color)
 {
-	return weight * pow((1 - 0.5 * cost), cost);
+  double cost = 0.0;
+  for (size_t i = 0; i < t; i++) {
+    if (color == "red") cost += costs[i].first;
+    else if (color == "blue") cost += costs[i].second;
+  }
+  return cost;
 }
 
 double regrets(vector<pair<double, double> > costs, size_t t, string color, double total_cost)
 {
-	double sigma_cta = 0.0;
-	if (color == "red")
-	{
-		for (size_t j = 0; j < t; j++)
-		{
-			sigma_cta += costs[j].first;
-		}
-	}
-	else if (color == "blue");
-	{
-		for (size_t j = 0; j < t; j++)
-		{
-			sigma_cta += costs[j].second;
-		}
-	}
-	return (sigma_cta - total_cost) / t;
+  return (total_cost - action_cost(costs, t, color)) / t;
 }
 
 vector<pair<double, double> > opponent()
 {
 	vector<pair<double, double> > moves;
-	default_random_engine generator;
+	default_random_engine generator(728);
 	uniform_real_distribution<double> distribution(0.0, 1.0);
 	pair<double, double> choices;
 	double red;
 	double blue;
-	for (int i = 0; i < 1000; i++)
+	for (int i = 0; i < N; i++)
 	{
 		red = distribution(generator);
 		blue = distribution(generator);
