@@ -1,7 +1,6 @@
 // FTPLvsFTL.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
 #include <iostream>
 #include <cstdlib>
 #include <string>
@@ -43,22 +42,24 @@ int main()
 	double red_total = 0.0;
 	double blue_total = 0.0;
 	double total = 0.0;
-	for (size_t i = 0; i < CHOICES; i++)
+	for (size_t i = 0; i < CHOICES-1; i++)
 	{
 		red_total += costs[i].first;
 		blue_total += costs[i].second;
 		if (red_total < blue_total) //Adds choices the player makes
 		{
-			total += costs[i].first;
+			outs << "Chose red" << endl;		  
+			total += costs[i+1].first;
 			choices.push_back(make_pair("red", costs[i].first));
 		}
 		else
 		{
-			total += costs[i].second;
+			outs << "Chose blue" << endl;					  
+			total += costs[i+1].second;
 			choices.push_back(make_pair("blue", costs[i].second));
 		}
-		outs << "Choice: " << choices[i].first << endl; //Writes results to file
-		outs << "Cost: " << choices[i].second << endl;
+		//outs << "Choice: " << choices[i].first << endl; //Writes results to file
+		//outs << "Cost: " << choices[i].second << endl;
 		outs << "Red total: " << red_total << endl;
 		outs << "Blue total: " << blue_total << endl;
 		outs << "Player total: " << total << endl;
@@ -69,39 +70,19 @@ int main()
 
 vector<pair<double, double> > opponent()
 {
-	time_t timer;
-	time(&timer);
 	vector<pair<double, double> > moves;
-	default_random_engine generator(timer);
-	uniform_real_distribution<double> distribution(0.0, 1.0); //Generates uniform distribution of costs
-	pair<double, double> choices;
-	double red;
-	double blue;
-	double small;
-	double large;
-	red = distribution(generator); //First two costs are generated uniformly and randomly
-	blue = distribution(generator);
-	choices = make_pair(red, blue);
-	moves.push_back(choices);
-	double red_total = red;
-	double blue_total = blue;
+	double epsilon = 0.5;
 	for (int i = 1; i < CHOICES; i++)
 	{
-		red = distribution(generator); //Generates two random costs and assigns the larger one to the choice that had previously had a lower cost in an attempt to trick the player
-		blue = distribution(generator);
-		small = min(red, blue);
-		large = max(red, blue);
-		if (red_total < blue_total)
-		{
-			choices = make_pair(large, small);
-		}
-		else
-		{
-			choices = make_pair(small, large);
-		}
-		moves.push_back(choices);
-		red_total += red;
-		blue_total += blue;
+	  if (i == 1) {
+	    moves.push_back(make_pair(0, epsilon));
+	  }
+	  else if (i % 2 == 0) {
+	    moves.push_back(make_pair(1, 0));
+	  }
+	  else {
+	    moves.push_back(make_pair(0, 1));
+	  }
 	}
 	return moves;
 }
