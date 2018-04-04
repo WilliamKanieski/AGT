@@ -22,6 +22,8 @@ typedef vector<vector<double> > choice_vector;
 
 int min_index(vector<double> list);
 
+void file_write(vector<double> list, ofstream& outs);
+
 int main()
 {
 	//initializes the variables and opens the output file
@@ -52,7 +54,7 @@ int main()
 		opponent[0][i] = i * EPSILON / number_choices;
 	}
 	int suspected_choice = 0;
-	for (size_t i = 1; i < CHOICES; i++)
+	for (size_t i = 1; i < CHOICES; i++) //opponent puts ones for the costs it thinks the player will choose and makes the rest zeros
 	{
 		opponent[i][suspected_choice] = 1;
 		suspected_choice = (suspected_choice + 1) % number_choices;
@@ -81,7 +83,7 @@ int main()
 		default_random_engine generator(timer);
 		uniform_real_distribution<double> distribution(0.0, 1.0);
 		chooser = distribution(generator);
-		for (int i = 0; i < number_choices; i++)
+		for (size_t i = 0; i < number_choices; i++)
 		{
 			if (i / number_choices <= chooser && (i + 1) / number_choices > chooser)
 			{
@@ -94,39 +96,38 @@ int main()
 	//player gets to pay for its decisions and acts accordingly
 	pair<int, double> decision;
 	double regret;
-	vector<vector<double> > running_totals;
 	int next_choice;
 	vector<double> player_totals = bonus_list;
+	cout << "Code runs beyond this line." << endl;
 	for (size_t i = 0; i < number_choices; i++)
 	{
 		player_totals[i] += opponent[0][i];
 	}
-	running_totals.push_back(player_totals);
 	decision = make_pair(first_choice, opponent[0][first_choice]);
 	player_choices.push_back(decision);
 	player_totals[0] += decision.second;
+	regret = player_totals[player_choices[0].first] - player_totals[min_index(player_totals)];
+	outs << "Player's choice: " << player_choices[0].first << endl;
+	outs << "Cost: " << player_choices[0].second << endl;
+	outs << "-------------------------------------------------" << endl;
+	file_write(player_totals, outs);
+	outs << "Player's regret: " << regret << endl;
 	for (size_t i = 1; i < CHOICES; i++)
 	{
 		next_choice = min_index(player_totals);
 		decision = make_pair(next_choice, opponent[i][next_choice]);
 		player_choices.push_back(decision);
 		player_totals[i] += decision.second;
-		running_totals.push_back(player_totals);
+		regret = player_totals[player_choices[0].first] - player_totals[min_index(player_totals)];
+		outs << "Player's choice: " << player_choices[0].first << endl;
+		outs << "Cost: " << player_choices[0].second << endl;
+		outs << "-------------------------------------------------" << endl;
+		file_write(player_totals, outs);
+		outs << "Player's regret: " << regret << endl;
 	}
 
 	//results are written to the output file
-	for (size_t i = 0; i < CHOICES; i++)
-	{
-		regret = (running_totals[i][player_choices[i].first] - running_totals[i][min_index(player_totals)]) / (i + 1);
-		outs << "Player's choice: " << player_choices[i].first << endl;
-		outs << "Cost: " << player_choices[i].second << endl;
-		outs << "-------------------------------------------------" << endl;
-		for (size_t j = 0; j < number_choices; j++)
-		{
-			outs << "Choice " << j << " total: " << running_totals[i][j] << endl;
-		}
-		outs << "Player's regret: " << regret << endl;
-	}
+
 	
 	outs.close();
 
@@ -138,11 +139,19 @@ int min_index(vector<double> list)
 	int answer = 0;
 	for (size_t i = 0; i < list.size(); i++)
 	{
-		if (list[i] < answer)
+		if (list[i] < list[answer])
 		{
 			answer = i;
 		}
 	}
 	return answer;
+}
+
+void file_write(vector<double> list, ofstream& outs)
+{
+	for (size_t i = 0; i < list.size(); i++)
+	{
+		outs << "Choice " << i << " total: " << list[i] << endl;
+	}
 }
 
