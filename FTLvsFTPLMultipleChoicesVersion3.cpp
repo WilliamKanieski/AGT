@@ -20,7 +20,7 @@ typedef vector<pair<int, double> > choices;
 
 typedef vector<vector<double> > choice_vector;
 
-int min_index(vector<double> list);
+pair<int, double> min_index(vector<double> list);
 
 void file_write(vector<double> list, ofstream& outs);
 
@@ -61,7 +61,7 @@ int main()
 	}
 
 	//selects bonuses from a continuous geometric (exponential) distribution, chooses player's first choice
-	int first_choice;
+	pair<int, double> first_choice;
 	vector<double> bonus_list(number_choices, 0.0);
 	if (bonuses == 'y' || bonuses == 'Y')
 	{
@@ -87,7 +87,7 @@ int main()
 		{
 			if (i / number_choices <= chooser && (i + 1) / number_choices > chooser)
 			{
-				first_choice = i;
+				first_choice = make_pair(i, opponent[0][i]);
 				break;
 			}
 		}
@@ -97,36 +97,43 @@ int main()
 	pair<int, double> decision;
 	double regret;
 	int next_choice;
-	vector<double> player_totals = bonus_list;
+	vector<pair<int, double> > player_totals(number_choices); 
+	for (size_t i = 0; i < number_choices; i++)
+	{
+		player_totals[i] = make_pair(i, bonus_list[i]);
+	}
 	cout << "Code runs beyond this line." << endl;
 	for (size_t i = 0; i < number_choices; i++)
 	{
-		player_totals[i] += opponent[0][i];
+		player_totals[i].first += opponent[0][i];
 	}
-	decision = make_pair(first_choice, opponent[0][first_choice]);
+	decision = make_pair(first_choice.first, opponent[0][first_choice.first]);
 	player_choices.push_back(decision);
-	player_totals[0] += decision.second;
-	regret = player_totals[player_choices[0].first] - player_totals[min_index(player_totals)];
+	player_totals[decision.first].second += decision.second;
+	regret = player_totals[player_choices[0].first].second - player_totals[min_index(player_totals).first].second;
+	outs << "Iteration 0" << endl;
 	outs << "Player's choice: " << player_choices[0].first << endl;
 	outs << "Cost: " << player_choices[0].second << endl;
 	outs << "-------------------------------------------------" << endl;
 	file_write(player_totals, outs);
 	outs << "Player's regret: " << regret << endl;
+	outs << "-------------------------------------------------" << endl;
+	next_choice = min_index(player_totals).first;
 	for (size_t i = 1; i < CHOICES; i++)
 	{
-		next_choice = min_index(player_totals);
 		decision = make_pair(next_choice, opponent[i][next_choice]);
 		player_choices.push_back(decision);
-		player_totals[i] += decision.second;
-		regret = player_totals[player_choices[0].first] - player_totals[min_index(player_totals)];
-		outs << "Player's choice: " << player_choices[0].first << endl;
-		outs << "Cost: " << player_choices[0].second << endl;
+		player_totals[i].second += decision.second;
+		regret = player_totals[player_choices[i].first] - player_totals[min_index(player_totals).first];
+		outs << "Iteration " << i << endl;
+		outs << "Player's choice: " << player_choices[i].first << endl;
+		outs << "Cost: " << player_choices[i].second << endl;
 		outs << "-------------------------------------------------" << endl;
 		file_write(player_totals, outs);
 		outs << "Player's regret: " << regret << endl;
+		outs << "-------------------------------------------------" << endl;
+		next_choice = min_index(player_totals).first;
 	}
-
-	//results are written to the output file
 
 	
 	outs.close();
@@ -134,24 +141,24 @@ int main()
     return 0;
 }
 
-int min_index(vector<double> list)
+pair<int, double> min_index(vector<pair<int, double> > list)
 {
 	int answer = 0;
 	for (size_t i = 0; i < list.size(); i++)
 	{
-		if (list[i] < list[answer])
+		if (list[i].second < list[answer].second)
 		{
 			answer = i;
 		}
 	}
-	return answer;
+	return make_pair(answer, list[answer].second);
 }
 
-void file_write(vector<double> list, ofstream& outs)
+void file_write(vector<pair<int, double> > list, ofstream& outs)
 {
 	for (size_t i = 0; i < list.size(); i++)
 	{
-		outs << "Choice " << i << " total: " << list[i] << endl;
+		outs << "Choice " << i << " total: " << list[i].second << endl;
 	}
 }
 
